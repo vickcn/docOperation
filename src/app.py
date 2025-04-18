@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
 import os
 from src.doc_parser import DocParser
@@ -7,6 +7,16 @@ import tempfile
 
 app = Flask(__name__)
 CORS(app)  # 啟用CORS支持
+
+@app.route('/')
+def home():
+    return jsonify({
+        "status": "running",
+        "message": "文檔轉換服務正在運行",
+        "endpoints": {
+            "/api/convert": "POST - 文檔轉換端點"
+        }
+    })
 
 @app.route('/api/convert', methods=['POST'])
 def convert():
