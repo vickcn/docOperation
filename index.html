@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文檔轉換工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { max-width: 800px; margin-top: 50px; }
+        .upload-area { border: 2px dashed #ccc; padding: 20px; text-align: center; margin: 20px 0; }
+        .upload-area:hover { border-color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">文檔轉換工具</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <h3>上傳文檔</h3>
+            <p>支持 .docx 格式</p>
+            <form id="uploadForm" class="mb-3">
+                <div class="mb-3">
+                    <input type="file" class="form-control" id="docxFile" accept=".docx" required>
+                </div>
+                <div class="mb-3">
+                    <label for="fromKey" class="form-label">原調</label>
+                    <input type="text" class="form-control" id="fromKey" required>
+                </div>
+                <div class="mb-3">
+                    <label for="toKey" class="form-label">目標調</label>
+                    <input type="text" class="form-control" id="toKey" required>
+                </div>
+                <button type="submit" class="btn btn-primary">轉換</button>
+            </form>
+        </div>
+
+        <div id="result" class="mt-4"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('file', document.getElementById('docxFile').files[0]);
+            formData.append('fromKey', document.getElementById('fromKey').value);
+            formData.append('toKey', document.getElementById('toKey').value);
+
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'converted.docx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.getElementById('result').innerHTML = '<div class="alert alert-success">轉換成功！文件已開始下載。</div>';
+                } else {
+                    throw new Error('轉換失敗');
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<div class="alert alert-danger">轉換失敗：' + error.message + '</div>';
+            }
+        });
+    </script>
+</body>
+</html> 
