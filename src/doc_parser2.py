@@ -200,12 +200,13 @@ class DocParser:
 
     def parse_docx(self, file_path: str) -> Dict[str, Any]:
         """
-        解析docx文件并返回结构化数据
+        解析docx文件並返回結構化數據
         """
         try:
             doc = Document(file_path)
             result = {
                 "metadata": self._extract_metadata(doc),
+                "sections": self._extract_section_properties(doc),
                 "paragraphs": self._extract_paragraphs(doc),
                 "tables": self._extract_tables(doc),
                 "images": self._extract_images(doc),
@@ -256,14 +257,20 @@ class DocParser:
         return 12.0  # 默认12磅
 
     def _extract_hyperlink(self, run) -> Dict[str, Any]:
-        """提取超链接信息"""
-        hyperlink_rel = run._r.xpath("./w:hyperlink")
-        if hyperlink_rel:
-            rel = run._parent._parent.part.rels[hyperlink_rel[0].get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")]
-            return {
-                "url": rel.target_ref,
-                "text": run.text
-            }
+        """提取超連結信息"""
+        # 檢查父元素是否是超連結
+        parent = run._element.getparent()
+        if parent.tag.endswith('hyperlink'):
+            # 獲取文檔部分
+            part = run._parent._parent.part
+            # 獲取關係ID
+            rel_id = parent.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id')
+            if rel_id and rel_id in part.rels:
+                rel = part.rels[rel_id]
+                return {
+                    "url": rel.target_ref,
+                    "text": run.text
+                }
         return None
 
     def _extract_paragraph_format(self, paragraph) -> Dict[str, Any]:
@@ -319,6 +326,38 @@ class DocParser:
                     "type": rel.target_ref.split(".")[-1]
                 })
         return images
+
+    def _extract_section_properties(self, doc: Document) -> Dict[str, Any]:
+        """提取文檔節的屬性，包括分欄設置"""
+        sections = []
+        for section in doc.sections:
+            # 獲取分欄信息
+            cols_element = section._sectPr.xpath("./w:cols")
+            cols_info = {
+                "count": "1",
+                "space": "0"
+            }
+            
+            if cols_element:
+                cols = cols_element[0]
+                cols_info["count"] = cols.get(qn("w:num")) or "1"
+                cols_info["space"] = cols.get(qn("w:space")) or "0"
+            
+            section_props = {
+                "start_type": section.start_type,
+                "page_height": float(section.page_height.pt),
+                "page_width": float(section.page_width.pt),
+                "left_margin": float(section.left_margin.pt),
+                "right_margin": float(section.right_margin.pt),
+                "top_margin": float(section.top_margin.pt),
+                "bottom_margin": float(section.bottom_margin.pt),
+                "header_distance": float(section.header_distance.pt),
+                "footer_distance": float(section.footer_distance.pt),
+                "orientation": section.orientation,
+                "columns": cols_info
+            }
+            sections.append(section_props)
+        return sections
 
     def save_to_json(self, data: Dict[str, Any], output_path: str) -> None:
         """将解析结果保存为JSON文件"""

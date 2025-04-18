@@ -1,10 +1,12 @@
 from docx import Document
 from docx.shared import Pt, Inches, Twips, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
+from docx.enum.style import WD_STYLE_TYPE
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls, qn
 from typing import Dict, Any
 import logging
+import docx.opc.constants
 
 class DocRebuilder:
     def __init__(self, logger=None):
@@ -20,6 +22,13 @@ class DocRebuilder:
             # 設置默認字體為 Calibri
             default_font = doc.styles['Normal'].font
             default_font.name = 'Calibri'
+            
+            # 添加超連結樣式
+            if 'Hyperlink' not in doc.styles:
+                hyperlink_style = doc.styles.add_style('Hyperlink', WD_STYLE_TYPE.CHARACTER)
+                hyperlink_style.base_style = doc.styles['Default Paragraph Font']
+                hyperlink_style.font.color.rgb = RGBColor(0, 0, 255)
+                hyperlink_style.font.underline = True
             
             # 重建樣式
             self._rebuild_styles(doc, data.get("styles", {}))
@@ -191,6 +200,31 @@ class DocRebuilder:
         # 处理超链接
         if format_data.get('hyperlink'):
             self._apply_hyperlink(run, format_data['hyperlink'])
+
+    def _apply_hyperlink(self, run, hyperlink_data):
+        """應用超連結格式"""
+        if not hyperlink_data or not hyperlink_data.get('url'):
+            return
+            
+        # 獲取文檔部分
+        part = run.part
+        
+        # 創建新的關係
+        rel_id = part.relate_to(hyperlink_data['url'], 
+                              docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, 
+                              is_external=True)
+        
+        # 創建超連結元素
+        hyperlink = parse_xml(f'<w:hyperlink {nsdecls("w")} r:id="{rel_id}"/>')
+        
+        # 將 run 元素包裝在超連結中
+        run._element.getparent().replace(run._element, hyperlink)
+        hyperlink.append(run._element)
+        
+        # 設置超連結樣式
+        rPr = run._element.get_or_add_rPr()
+        rStyle = parse_xml(f'<w:rStyle {nsdecls("w")} w:val="Hyperlink"/>')
+        rPr.append(rStyle)
 
     def _rebuild_run(self, paragraph, run_data):
         """重建文本运行"""

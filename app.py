@@ -4,6 +4,7 @@ from src.doc_parser import DocParser
 from src.doc_rebuilder import DocRebuilder
 import tempfile
 import logging
+from src.chord_transposer import ChordTransposer
 
 app = Flask(__name__)
 
@@ -18,7 +19,7 @@ def index():
 @app.route('/api/convert', methods=['POST'])
 def convert():
     try:
-        # 獲取上傳的文件
+        # 獲取上傳的文件和轉調參數
         file = request.files['file']
         from_key = request.form['fromKey']
         to_key = request.form['toKey']
@@ -35,6 +36,22 @@ def convert():
             # 解析文檔
             parser = DocParser()
             data = parser.parse_docx(temp_input.name)
+            
+            # 轉調處理
+            transposer = ChordTransposer()
+            
+            # 遍歷所有段落和運行，處理和弦
+            for paragraph in data.get('paragraphs', []):
+                for run in paragraph.get('runs', []):
+                    if 'text' in run:
+                        run['text'] = transposer.transpose_text(
+                            run['text'],
+                            from_key=from_key,
+                            to_key=to_key,
+                            preserve_spaces=True
+                        )
+            
+            # 保存處理後的數據
             parser.save_to_json(data, temp_json.name)
             
             # 重建文檔
@@ -60,4 +77,4 @@ def convert():
         return {'error': str(e)}, 500
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True, host='0.0.0.0', port=5418) 

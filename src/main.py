@@ -5,6 +5,8 @@ from pathlib import Path
 from doc_parser import DocParser
 from doc_rebuilder import DocRebuilder
 from chord_transposer import ChordTransposer
+import json
+import sys
 
 class LOGger:
     @staticmethod
@@ -57,43 +59,35 @@ def transpose_data(data: dict, from_key: str, to_key: str, preserve_spaces: bool
     return data
 
 def main():
-    # 设置日志
-    logger = setup_logging()
-    
-    # 解析命令行参数
+    """主函數"""
     parser = LOGger.myparser()
     args = parser.parse_args()
     
     try:
         if args.mode == 'parse':
-            # 解析文档
-            parser = DocParser(logger)
-            data = parser.parse_docx(args.input)
-            parser.save_to_json(data, args.output)
-            logger.info(f"文档解析完成，JSON文件已保存至: {args.output}")
+            # 解析文檔
+            doc_parser = DocParser()
+            data = doc_parser.parse_docx(args.input)
+            doc_parser.save_to_json(data, args.output)
+            print(f"文檔解析完成，結果保存到: {args.output}")
             
         elif args.mode == 'rebuild':
-            # 重建文档
-            rebuilder = DocRebuilder(logger)
-            parser = DocParser(logger)
-            data = parser.load_from_json(args.input)
-            
-            # 如果指定了调号，进行转调
-            if args.from_key and args.to_key:
-                logger.info(f"正在将歌曲从 {args.from_key} 调转到 {args.to_key}")
-                data = transpose_data(
-                    data, 
-                    args.from_key, 
-                    args.to_key, 
-                    preserve_spaces=args.preserve_spaces
-                )
+            # 讀取 JSON 數據
+            with open(args.input, 'r', encoding='utf-8') as f:
+                data = json.load(f)
                 
+            # 如果指定了調號，進行轉調
+            if args.from_key and args.to_key:
+                data = transpose_data(data, args.from_key, args.to_key, args.preserve_spaces)
+                
+            # 重建文檔
+            rebuilder = DocRebuilder()
             rebuilder.rebuild_docx(data, args.output)
-            logger.info(f"文档重建完成，已保存至: {args.output}")
+            print(f"文檔重建完成，保存到: {args.output}")
             
     except Exception as e:
-        logger.error(f"处理过程中发生错误: {str(e)}")
-        raise
+        print(f"錯誤: {str(e)}")
+        sys.exit(1)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main() 
