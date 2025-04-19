@@ -1,0 +1,12 @@
+v: 0
+micros:
+  - name: doc-operation
+    src: .
+    engine: python3.9
+    primary: true
+    public: true
+    presets:
+      env:
+        - name: FLASK_APP
+          value: src/app.py
+    run: python src/app.py 

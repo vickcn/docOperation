@@ -4,6 +4,7 @@ import os
 from src.doc_parser import DocParser
 from src.doc_rebuilder import DocRebuilder
 import tempfile
+from deta import Deta
 
 app = Flask(__name__)
 CORS(app)  # 啟用CORS支持
@@ -13,6 +14,7 @@ def home():
     return jsonify({
         "status": "running",
         "message": "文檔轉換服務正在運行",
+        "version": "deta-space",
         "endpoints": {
             "/api/convert": "POST - 文檔轉換端點"
         }
@@ -33,33 +35,43 @@ def convert():
         # 創建臨時文件來保存輸出
         temp_output = tempfile.NamedTemporaryFile(delete=False, suffix='.docx')
         
-        # 解析文檔
-        parser = DocParser()
-        doc_data = parser.parse_docx(temp_input.name)
-        
-        # 重建文檔
-        rebuilder = DocRebuilder()
-        rebuilder.rebuild_docx(doc_data, temp_output.name)
-        
-        # 返回處理後的文件
-        return send_file(
-            temp_output.name,
-            as_attachment=True,
-            download_name='converted.docx',
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-        
-    except Exception as e:
-        return str(e), 500
-        
-    finally:
-        # 清理臨時文件
         try:
-            os.unlink(temp_input.name)
-            os.unlink(temp_output.name)
-        except:
-            pass
+            # 解析文檔
+            parser = DocParser()
+            doc_data = parser.parse_docx(temp_input.name)
+            
+            # 重建文檔
+            rebuilder = DocRebuilder()
+            rebuilder.rebuild_docx(doc_data, temp_output.name)
+            
+            # 返回處理後的文件
+            return send_file(
+                temp_output.name,
+                as_attachment=True,
+                download_name='converted.docx',
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            )
+            
+        except Exception as e:
+            return jsonify({
+                "error": str(e),
+                "message": "文檔處理過程中出錯"
+            }), 500
+            
+        finally:
+            # 清理臨時文件
+            try:
+                os.unlink(temp_input.name)
+                os.unlink(temp_output.name)
+            except:
+                pass
+                
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "message": "請求處理失敗"
+        }), 400
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
+    port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port) 
