@@ -50,7 +50,9 @@
             formData.append('toKey', document.getElementById('toKey').value);
 
             try {
-                const response = await fetch('https://doc-operation.onrender.com/api/convert', {
+                document.getElementById('result').innerHTML = '<div class="alert alert-info">正在處理中...</div>';
+                
+                const response = await fetch('https://doc-operation.vercel.app/api/convert', {
                     method: 'POST',
                     body: formData
                 });
@@ -66,10 +68,16 @@
                     window.URL.revokeObjectURL(url);
                     document.getElementById('result').innerHTML = '<div class="alert alert-success">轉換成功！文件已開始下載。</div>';
                 } else {
-                    throw new Error('轉換失敗');
+                    const errorText = await response.text();
+                    throw new Error(errorText || '轉換失敗');
                 }
             } catch (error) {
-                document.getElementById('result').innerHTML = '<div class="alert alert-danger">轉換失敗：' + error.message + '</div>';
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = 
+                    `<div class="alert alert-danger">
+                        轉換失敗：${error.message}<br>
+                        <small>請檢查文件格式是否正確，以及原調和目標調是否有效。</small>
+                    </div>`;
             }
         });
     </script>
