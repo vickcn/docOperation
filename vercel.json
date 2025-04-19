@@ -8,8 +8,15 @@
     ],
     "routes": [
         {
+            "src": "/api/convert",
+            "dest": "src/app.py"
+        },
+        {
             "src": "/(.*)",
             "dest": "src/app.py"
         }
-    ]
+    ],
+    "env": {
+        "PYTHONPATH": "."
+    }
 } 
