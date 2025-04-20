@@ -27,18 +27,13 @@ pip install -r requirements.txt
 python app.py
 ```
 
-4. 訪問 http://localhost:5000
-
-## 在線使用
-
-訪問 https://YOUR_USERNAME.github.io/docOperation/
+4. 訪問 http://localhost:5418
 
 ## 技術棧
 
 - Python
 - Flask
 - python-docx
-- GitHub Pages
 
 ## 許可證
 
