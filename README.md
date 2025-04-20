@@ -13,7 +13,7 @@
 
 1. 克隆倉庫：
 ```bash
-git clone https://github.com/YOUR_USERNAME/docOperation.git
+git clone https://github.com/vickcn/docOperation.git
 cd docOperation
 ```
 
